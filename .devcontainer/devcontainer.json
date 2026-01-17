@@ -1,14 +1,53 @@
 {
-    "name": "NerfStudio Dev Container",
-    "dockerComposeFile": "docker-compose.yml",
-    "service": "nerfstudio",
-    "workspaceFolder": "/workspace",
-    "shutdownAction": "stopCompose",
-    "extensions": [
-        "mutantdino.resourcemonitor",
-        "ms-azuretools.vscode-docker",
-        "nvidia.nsight-vscode-edition",
-        "ms-python.python",
-        "charliermarsh.ruff"
-    ]
+	"name": "Nerfstudio",
+	"image": "ghcr.io/nerfstudio-project/nerfstudio:latest",
+	// "build": {
+	// 		"dockerfile": "Dockerfile",
+	// 		"context": ".."
+    // },
+	"runArgs": [
+		"--gpus",
+		"all",
+		"--shm-size=12gb"
+	],
+
+	// The "features" block works on pre-built images too.
+	// It will run after the image is pulled to create the user.
+	"features": {
+		"ghcr.io/devcontainers/features/common-utils:2": {
+			"username": "user",
+			"uid": "automatic",
+			"gid": "automatic",
+			"installZsh": "false",
+			"installOhMyZsh": "false",
+			"upgradePackages": true
+		}
+	},
+
+	"forwardPorts": [
+		7007
+	],
+
+	"remoteUser": "user",
+	"mounts": [
+		"source=${localEnv:USERPROFILE}/.cache,target=/home/user/.cache,type=bind,consistency=cached",
+		"source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
+	],
+	
+	"workspaceFolder": "/workspace",
+
+	"postCreateCommand": "sudo ln -s /workspace /home/user/workspace && sudo chown -R user:user /workspace && python -m pip install wheel && python -m pip install -e . --no-deps --no-build-isolation",
+
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"ms-toolsai.jupyter",
+				"mutantdino.resourcemonitor",
+				"ms-azuretools.vscode-docker",
+				"nvidia.nsight-vscode-edition",
+				"charliermarsh.ruff"
+			]
+		}
+	}
 }
