@@ -33,6 +33,7 @@ from nerfstudio.field_components.spatial_distortions import SceneContraction
 from nerfstudio.fields.density_fields import HashMLPDensityField
 from nerfstudio.fields.nerfacto_field import NerfactoField
 from nerfstudio.metrics.gss import GSS
+from nerfstudio.metrics.lss import LSS
 from nerfstudio.model_components.losses import (
     MSELoss,
     distortion_loss,
@@ -252,6 +253,7 @@ class NerfactoModel(Model):
         self.ssim = structural_similarity_index_measure
         self.lpips = LearnedPerceptualImagePatchSimilarity(normalize=True)
         self.gss = GSS()
+        self.lss = LSS()
         self.step = 0
 
     def get_param_groups(self) -> Dict[str, List[Parameter]]:
@@ -416,11 +418,13 @@ class NerfactoModel(Model):
         ssim = self.ssim(gt_rgb, predicted_rgb)
         lpips = self.lpips(gt_rgb, predicted_rgb)
         gss = self.gss(gt_rgb, predicted_rgb)
+        lss = self.lss(gt_rgb, predicted_rgb)
 
         # all of these metrics will be logged as scalars
         metrics_dict = {"psnr": float(psnr.item()), "ssim": float(ssim)}  # type: ignore
         metrics_dict["lpips"] = float(lpips)
         metrics_dict["gss"] = float(gss.item())
+        metrics_dict["lss"] = float(lss.item())
 
         images_dict = {"img": combined_rgb, "accumulation": combined_acc, "depth": combined_depth}
 
