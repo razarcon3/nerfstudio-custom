@@ -1,3 +1,5 @@
 ns-train nerfacto --experiment-name donut --vis viewer+wandb nerfstudio-data --data data/donut --eval-mode filename
 
-ns-eval --load-config outputs/Donut/nerfacto/2026-01-19_205320/config.yml --output-path eval-outputs/donut/nerfacto/output.json --render-output-path eval-outputs/donut/nerfacto
+python -m nerfstudio.scripts.eval --load-config outputs/Donut/nerfacto/2026-01-19_205320/config.yml --output-path eval_outputs/donut/nerfacto/output.json --render-output-path eval_outputs/donut/nerfacto
+
+python -m pip install -e . --no-deps
