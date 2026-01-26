@@ -37,6 +37,8 @@ from nerfstudio.cameras.cameras import Cameras
 from nerfstudio.data.scene_box import OrientedBox
 from nerfstudio.engine.callbacks import TrainingCallback, TrainingCallbackAttributes, TrainingCallbackLocation
 from nerfstudio.engine.optimizers import Optimizers
+from nerfstudio.metrics.gss import GSS
+from nerfstudio.metrics.lss import LSS
 from nerfstudio.model_components.lib_bilagrid import BilateralGrid, color_correct, slice, total_variation_loss
 from nerfstudio.models.base_model import Model, ModelConfig
 from nerfstudio.utils.colors import get_color
@@ -241,6 +243,8 @@ class SplatfactoModel(Model):
         self.psnr = PeakSignalNoiseRatio(data_range=1.0)
         self.ssim = SSIM(data_range=1.0, size_average=True, channel=3)
         self.lpips = LearnedPerceptualImagePatchSimilarity(normalize=True)
+        self.gss = GSS()
+        self.lss = LSS()
         self.step = 0
 
         self.crop_box: Optional[OrientedBox] = None
@@ -753,10 +757,14 @@ class SplatfactoModel(Model):
         psnr = self.psnr(gt_rgb, predicted_rgb)
         ssim = self.ssim(gt_rgb, predicted_rgb)
         lpips = self.lpips(gt_rgb, predicted_rgb)
+        gss = self.gss(gt_rgb, predicted_rgb)
+        lss = self.lss(gt_rgb, predicted_rgb)
 
         # all of these metrics will be logged as scalars
         metrics_dict = {"psnr": float(psnr.item()), "ssim": float(ssim)}  # type: ignore
         metrics_dict["lpips"] = float(lpips)
+        metrics_dict["gss"] = float(gss.item())
+        metrics_dict["lss"] = float(lss.item())
 
         if self.config.color_corrected_metrics:
             assert cc_rgb is not None
