@@ -2,19 +2,21 @@
 ARG UBUNTU_VERSION=22.04
 ARG NVIDIA_CUDA_VERSION=11.8.0
 # CUDA architectures, required by Colmap and tiny-cuda-nn. Use >= 8.0 for faster TCNN.
-ARG CUDA_ARCHITECTURES="90;89;86;80;75;70;61"
+# ARG CUDA_ARCHITECTURES="90;89;86;80;75;70;61"
+ARG CUDA_ARCHITECTURES="89"
+
 ARG NERFSTUDIO_VERSION=""
 
 # Pull source either provided or from git.
-FROM scratch as source_copy
+FROM scratch AS source_copy
 ONBUILD COPY . /tmp/nerfstudio
-FROM alpine/git as source_no_copy
+FROM alpine/git AS source_no_copy
 ARG NERFSTUDIO_VERSION
 ONBUILD RUN git clone --branch ${NERFSTUDIO_VERSION} --recursive https://github.com/nerfstudio-project/nerfstudio.git /tmp/nerfstudio
 ARG NERFSTUDIO_VERSION
-FROM source_${NERFSTUDIO_VERSION:+no_}copy as source
+FROM source_${NERFSTUDIO_VERSION:+no_}copy AS source
 
-FROM nvidia/cuda:${NVIDIA_CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION} as builder
+FROM nvidia/cuda:${NVIDIA_CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION} AS builder
 ARG CUDA_ARCHITECTURES
 ARG NVIDIA_CUDA_VERSION
 ARG UBUNTU_VERSION
@@ -75,17 +77,25 @@ RUN git clone https://github.com/colmap/colmap.git && \
     cd build && \
     mkdir -p /build && \
     cmake .. -GNinja "-DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHITECTURES}" \
-        -DCMAKE_INSTALL_PREFIX=/build/colmap && \
+        -DCMAKE_INSTALL_PREFIX=/build/colmap \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_C_COMPILER=gcc \
+        -DCMAKE_CXX_COMPILER=g++ \
+        -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc \
+        -DCMAKE_CUDA_HOST_COMPILER=$(which g++) \
+        -DGUI_ENABLED=ON \
+        -DCUDA_ENABLED=ON \
+        -DTESTS_ENABLED=OFF && \
     ninja install -j1 && \
     cd ~
 
 # Upgrade pip and install dependencies.
 # pip install torch==2.2.2 torchvision==0.17.2 --index-url https://download.pytorch.org/whl/cu118 && \
 RUN pip install --no-cache-dir --upgrade pip 'setuptools<70.0.0' && \
-    pip install --no-cache-dir torch==2.1.2+cu118 torchvision==0.16.2+cu118 'numpy<2.0.0' --extra-index-url https://download.pytorch.org/whl/cu118 && \
+    pip install --no-cache-dir torch==2.3.0+cu118 torchvision==0.18.0+cu118 'numpy>=2.0.0' --extra-index-url https://download.pytorch.org/whl/cu118 && \
     git clone --branch master --recursive https://github.com/cvg/Hierarchical-Localization.git /opt/hloc && \
     cd /opt/hloc && git checkout v1.4 && python3.10 -m pip install --no-cache-dir . && cd ~ && \
-    TCNN_CUDA_ARCHITECTURES="${CUDA_ARCHITECTURES}" pip install --no-cache-dir "git+https://github.com/NVlabs/tiny-cuda-nn.git@b3473c81396fe927293bdfd5a6be32df8769927c#subdirectory=bindings/torch" && \
+    TCNN_CUDA_ARCHITECTURES="${CUDA_ARCHITECTURES}" pip install --no-build-isolation --no-cache-dir "git+https://github.com/NVlabs/tiny-cuda-nn.git@2e757bbe781db59c4980d389d7dccbf5edc09669#subdirectory=bindings/torch" && \
     pip install --no-cache-dir pycolmap==0.6.1 pyceres==2.1 omegaconf==2.3.0
 
 # Install gsplat and nerfstudio.
@@ -98,8 +108,8 @@ COPY --from=source /tmp/nerfstudio/ /tmp/nerfstudio
 RUN export TORCH_CUDA_ARCH_LIST="$(echo "$CUDA_ARCHITECTURES" | tr ';' '\n' | awk '$0 > 70 {print substr($0,1,1)"."substr($0,2)}' | tr '\n' ' ' | sed 's/ $//')" && \
     export MAX_JOBS=4 && \
     GSPLAT_VERSION="$(sed -n 's/.*gsplat==\s*\([^," '"'"']*\).*/\1/p' /tmp/nerfstudio/pyproject.toml)" && \
-    pip install --no-cache-dir git+https://github.com/nerfstudio-project/gsplat.git@v${GSPLAT_VERSION} && \
-    pip install --no-cache-dir /tmp/nerfstudio 'numpy<2.0.0' && \
+    pip install --no-cache-dir --no-build-isolation git+https://github.com/nerfstudio-project/gsplat.git@v${GSPLAT_VERSION} && \
+    pip install --no-cache-dir /tmp/nerfstudio 'numpy>=2.0.0' && \
     rm -rf /tmp/nerfstudio
 
 # Fix permissions
@@ -109,15 +119,15 @@ RUN chmod -R go=u /usr/local/lib/python3.10 && \
 #
 # Docker runtime stage.
 #
-FROM nvidia/cuda:${NVIDIA_CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION} as runtime
+FROM nvidia/cuda:${NVIDIA_CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION} AS runtime
 ARG CUDA_ARCHITECTURES
 ARG NVIDIA_CUDA_VERSION
 ARG UBUNTU_VERSION
 
-LABEL org.opencontainers.image.source = "https://github.com/nerfstudio-project/nerfstudio"
-LABEL org.opencontainers.image.licenses = "Apache License 2.0"
+LABEL org.opencontainers.image.source="https://github.com/nerfstudio-project/nerfstudio"
+LABEL org.opencontainers.image.licenses="Apache License 2.0"
 LABEL org.opencontainers.image.base.name="docker.io/library/nvidia/cuda:${NVIDIA_CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}"
-LABEL org.opencontainers.image.documentation = "https://docs.nerf.studio/"
+LABEL org.opencontainers.image.documentation="https://docs.nerf.studio/"
 
 # Minimal dependencies to run COLMAP binary compiled in the builder stage.
 # Note: this reduces the size of the final image considerably, since all the
@@ -152,4 +162,4 @@ COPY --from=builder /usr/local/bin/ns* /usr/local/bin/
 RUN /bin/bash -c 'ns-install-cli --mode install'
 
 # Bash as default entrypoint.
-CMD /bin/bash -l
+CMD ["/bin/bash", "-l"]

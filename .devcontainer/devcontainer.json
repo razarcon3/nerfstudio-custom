@@ -1,13 +1,12 @@
 {
 	"name": "Nerfstudio",
-	"image": "ghcr.io/nerfstudio-project/nerfstudio:latest",
-	// "build": {
-	// 		"dockerfile": "Dockerfile",
-	// 		"context": ".."
-    // },
+	// "image": "ghcr.io/nerfstudio-project/nerfstudio:latest",
+	"build": {
+			"dockerfile": "../Dockerfile",
+			"context": ".."
+    },
 	"runArgs": [
-		"--gpus",
-		"all",
+		"--gpus=all",
 		"--shm-size=12gb"
 	],
 
