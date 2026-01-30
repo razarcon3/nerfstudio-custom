@@ -60,7 +60,7 @@ RUN wget https://github.com/Kitware/CMake/releases/download/v3.31.3/cmake-3.31.3
 # Build and install GLOMAP.
 RUN git clone https://github.com/colmap/glomap.git && \
     cd glomap && \
-    git checkout "1.0.0" && \
+    git checkout "1.2.0" && \
     mkdir build && \
     cd build && \
     mkdir -p /build && \
