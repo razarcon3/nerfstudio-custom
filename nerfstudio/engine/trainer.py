@@ -88,6 +88,8 @@ class TrainerConfig(ExperimentConfig):
     """Number of steps to accumulate gradients over. Contains a mapping of {param_group:num}"""
     start_paused: bool = False
     """Whether to start the training in a paused state."""
+    save_only_config: bool = False
+    """Whether to only save the config file and exit."""
 
 
 class Trainer:

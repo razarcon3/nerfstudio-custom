@@ -255,6 +255,10 @@ def main(config: TrainerConfig) -> None:
     config.print_to_terminal()
     config.save_config()
 
+    if config.save_only_config:
+        CONSOLE.log("Only saving config file. Exiting.")
+        return
+
     launch(
         main_func=train_loop,
         num_devices_per_machine=config.machine.num_devices,
