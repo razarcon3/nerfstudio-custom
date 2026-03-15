@@ -12,7 +12,7 @@ FROM scratch AS source_copy
 ONBUILD COPY . /tmp/nerfstudio
 FROM alpine/git AS source_no_copy
 ARG NERFSTUDIO_VERSION
-ONBUILD RUN git clone --branch ${NERFSTUDIO_VERSION} --recursive https://github.com/nerfstudio-project/nerfstudio.git /tmp/nerfstudio
+ONBUILD RUN git clone --branch ${NERFSTUDIO_VERSION} --recursive https://github.com/razarcon3/nerfstudio-custom.git /tmp/nerfstudio
 ARG NERFSTUDIO_VERSION
 FROM source_${NERFSTUDIO_VERSION:+no_}copy AS source
 
@@ -148,6 +148,7 @@ RUN apt-get update && \
         libqt5widgets5 \
         python3.10 \
         python3.10-dev \
+        python3-pip \
         build-essential \
         python-is-python3 \
         ffmpeg
