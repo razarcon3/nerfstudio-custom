@@ -90,6 +90,8 @@ class TrainerConfig(ExperimentConfig):
     """Whether to start the training in a paused state."""
     save_only_config: bool = False
     """Whether to only save the config file and exit."""
+    wandb_entity: Optional[str] = None
+    """Wandb entity name (organization name)."""
 
 
 class Trainer:
@@ -215,6 +217,7 @@ class Trainer:
             log_dir=writer_log_path,
             experiment_name=self.config.experiment_name,
             project_name=self.config.project_name,
+            entity_name=self.config.wandb_entity,
         )
         writer.setup_local_writer(
             self.config.logging, max_iter=self.config.max_num_iterations, banner_messages=banner_messages

@@ -207,12 +207,17 @@ def setup_event_writer(
     log_dir: Path,
     experiment_name: str,
     project_name: str = "nerfstudio-project",
+    entity_name: Optional[str] = None,
 ) -> None:
     """Initialization of all event writers specified in config
     Args:
-        config: configuration to instantiate loggers
-        max_iter: maximum number of train iterations
-        banner_messages: list of messages to always display at bottom of screen
+        is_wandb_enabled: whether to enable wandb logging
+        is_tensorboard_enabled: whether to enable tensorboard logging
+        is_comet_enabled: whether to enable comet logging
+        log_dir: configuration to instantiate loggers
+        experiment_name: name of experiment
+        project_name: name of project
+        entity_name: name of wandb entity to push runs to
     """
     using_event_writer = False
 
@@ -221,7 +226,9 @@ def setup_event_writer(
         EVENT_WRITERS.append(curr_writer)
         using_event_writer = True
     if is_wandb_enabled:
-        curr_writer = WandbWriter(log_dir=log_dir, experiment_name=experiment_name, project_name=project_name)
+        curr_writer = WandbWriter(
+            log_dir=log_dir, experiment_name=experiment_name, project_name=project_name, entity_name=entity_name
+        )
         EVENT_WRITERS.append(curr_writer)
         using_event_writer = True
     if is_tensorboard_enabled:
@@ -305,11 +312,18 @@ class TimeWriter:
 class WandbWriter(Writer):
     """WandDB Writer Class"""
 
-    def __init__(self, log_dir: Path, experiment_name: str, project_name: str = "nerfstudio-project"):
+    def __init__(
+        self,
+        log_dir: Path,
+        experiment_name: str,
+        project_name: str = "nerfstudio-project",
+        entity_name: Optional[str] = None,
+    ):
         import wandb  # wandb is slow to import, so we only import it if we need it.
 
         wandb.init(
             project=os.environ.get("WANDB_PROJECT", project_name),
+            entity=os.environ.get("WANDB_ENTITY", entity_name),
             dir=os.environ.get("WANDB_DIR", str(log_dir)),
             name=os.environ.get("WANDB_NAME", experiment_name),
             reinit=True,
