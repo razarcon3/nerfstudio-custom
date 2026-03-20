@@ -30,8 +30,7 @@
 	"remoteUser": "user",
 	"mounts": [
 		"source=${localEnv:USERPROFILE}/.cache,target=/home/user/.cache,type=bind,consistency=cached",
-		"source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
-		"source=${localEnv:USERPROFILE}/.git-credentials,target=/home/user/.git-credentials,type=bind,consistency=cached"
+		"source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
 	],
 	
 	"workspaceFolder": "/workspace",

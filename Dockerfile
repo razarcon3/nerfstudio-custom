@@ -98,6 +98,16 @@ RUN pip install --no-cache-dir --upgrade pip 'setuptools<70.0.0' && \
     TCNN_CUDA_ARCHITECTURES="${CUDA_ARCHITECTURES}" pip install --no-build-isolation --no-cache-dir "git+https://github.com/NVlabs/tiny-cuda-nn.git@2e757bbe781db59c4980d389d7dccbf5edc09669#subdirectory=bindings/torch" && \
     pip install --no-cache-dir pycolmap==0.6.1 pyceres==2.1 omegaconf==2.3.0
 
+
+
+# Install git-lfs, huggingface_hub and hf-xet
+RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash && \
+    apt-get install -y git-lfs && \
+    pip install --no-cache-dir "huggingface_hub[cli]" hf-xet
+
+# Install git-xet
+RUN wget -qO - https://github.com/xetdata/xet-tools/releases/latest/download/xet-linux-x86_64.tar.gz | tar -xzf - -C /usr/local/bin
+
 # Install gsplat and nerfstudio.
 # NOTE: both are installed jointly in order to prevent docker cache with latest
 # gsplat version (we do not expliticly specify the commit hash).
@@ -146,21 +156,25 @@ RUN apt-get update && \
         libqt5core5a \
         libqt5gui5 \
         libqt5widgets5 \
+        libopengl0 \
         python3.10 \
         python3.10-dev \
         python3-pip \
         build-essential \
         python-is-python3 \
-        ffmpeg
+        ffmpeg \
+        git
 
 # Copy packages from builder stage.
 COPY --from=builder /build/colmap/ /usr/local/
 COPY --from=builder /build/glomap/ /usr/local/
 COPY --from=builder /usr/local/lib/python3.10/dist-packages/ /usr/local/lib/python3.10/dist-packages/
 COPY --from=builder /usr/local/bin/ns* /usr/local/bin/
+COPY --from=builder /usr/local/bin/git-xet /usr/local/bin/
 
 # Install nerfstudio cli auto completion
-RUN /bin/bash -c 'ns-install-cli --mode install'
+RUN /bin/bash -c 'ns-install-cli --mode install' && \
+    git xet install
 
 # Bash as default entrypoint.
 CMD ["/bin/bash", "-l"]
